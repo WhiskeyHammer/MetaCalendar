@@ -75,18 +75,42 @@ body {
 .nav-right { right: 0; }
 
 .calendar-wrapper { padding: 20px 60px; /* Added padding so arrows don't overlap content */ flex-grow: 1; overflow-y: auto; }
+
+/* FIX: Removed gap and background color to stop double borders */
 .calendar-grid {
     display: grid; 
-    gap: 1px;
-    background-color: var(--border-color); min-height: 85vh; border: 0px 1px 0px 1px solid var(--border-color);
+    gap: 0; 
+    /* background-color removed */
+    min-height: 85vh; 
+    border: 0px 1px 0px 1px solid var(--border-color);
 }
+
 .day-column {
     background-color: var(--bg-color); padding: 15px; display: flex;
-    flex-direction: column; border-right: 1px solid var(--border-color); min-width: 0;
+    flex-direction: column; 
+    /* Standard border-right removed, strictly using pseudo-element */
+    min-width: 0;
+    position: relative;
 }
-/* TWEAK REQUEST 2: No border on last visible column */
-.day-column:last-child {
-    border-right: none;
+
+/* FADING BORDER: Original Simple Gradient */
+.day-column::after {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0; right: 0;
+    width: 1px;
+    background: linear-gradient(to bottom, 
+        transparent 0%, 
+        var(--border-color) 20%, 
+        var(--border-color) 80%, 
+        transparent 100%
+    );
+    pointer-events: none;
+}
+
+/* No border on last visible column */
+.day-column:last-child::after {
+    display: none;
 }
 
 .day-header { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
@@ -134,13 +158,12 @@ body {
 }
 .icon-settings:hover { border-color: var(--text-main); }
 .icon-gear { border: 2px solid #666; border-radius: 50%; width: 14px; height: 14px; }
-/* In dark mode, update gear icon border to match text */
 body.dark-mode .icon-gear { border-color: var(--text-main); }
 
 
 .note-body {
     padding: 11px 12px 10px 12px; font-size: 0.85rem; outline: none;
-    color: var(--text-main); opacity: 0.8; /* Slight opacity for body text */
+    color: var(--text-main); opacity: 0.8; 
     overflow-wrap: anywhere; z-index: 1; position: relative; cursor: default;
     transition: opacity 0.2s;
 }
@@ -170,7 +193,7 @@ body.dark-mode .icon-gear { border-color: var(--text-main); }
 .note.collapsed:focus-within .note-body { display: block; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-/* TWEAK REQUEST 1: Title has 10px space underneath when collapsed */
+/* Collapsed Title Spacing */
 .note.collapsed .note-header {
     padding-bottom: 10px;
 }
