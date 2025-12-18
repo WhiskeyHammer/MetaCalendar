@@ -2,7 +2,7 @@ const calendar = document.getElementById('calendar');
 const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DEFAULT_TITLE = "Title";
 const DEFAULT_BODY = "Notes...";
-const DATA_VERSION = "v11"; // Central version control
+const DATA_VERSION = "v11"; 
 
 // Core state
 let draggedElement = null;
@@ -19,7 +19,6 @@ function toggleDropdown() {
     document.getElementById('appDropdown').classList.toggle('show');
 }
 
-// Close dropdown when clicking outside
 window.addEventListener('click', (e) => {
     if (!e.target.closest('.app-settings-container')) {
         document.getElementById('appDropdown').classList.remove('show');
@@ -28,14 +27,12 @@ window.addEventListener('click', (e) => {
 
 function exportData() {
     const data = {};
-    // Gather all keys relevant to the app
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key.startsWith('tweek-')) {
             data[key] = localStorage.getItem(key);
         }
     }
-    
     const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -57,8 +54,6 @@ function importData(input) {
     reader.onload = (e) => {
         try {
             const data = JSON.parse(e.target.result);
-            
-            // 1. Clear existing app data
             const keysToRemove = [];
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
@@ -67,14 +62,11 @@ function importData(input) {
                 }
             }
             keysToRemove.forEach(k => localStorage.removeItem(k));
-
-            // 2. Restore data
             Object.keys(data).forEach(key => {
                 localStorage.setItem(key, data[key]);
             });
-
             alert('Import successful!');
-            location.reload(); // Refresh to apply
+            location.reload(); 
         } catch (err) {
             alert('Error importing file: ' + err.message);
         }
@@ -108,9 +100,14 @@ function initCalendar() {
         `;
         
         const container = col.querySelector('.note-container');
+        
         container.onclick = (e) => {
-            if(e.target === container) createNote(container, dateKey);
+            if(e.target === container) {
+                const insertBefore = getInsertPosition(container, e.clientY);
+                createNote(container, dateKey, undefined, insertBefore);
+            }
         };
+
         container.ondragover = (e) => handleDragOver(e, container);
         container.ondrop = (e) => handleDrop(e, container, dateKey);
 
@@ -149,13 +146,10 @@ function materializeRecurringNotes(dateKey, dayOfWeek) {
 
     rules.forEach(rule => {
         const creationKey = `${rule.id}_${dateKey}`;
-
         if (history.includes(creationKey)) return; 
-
         if (dateKey >= rule.startDate) {
             if (rule.days && rule.days.includes(dayOfWeek)) {
                 const exists = notes.some(n => n.seriesId === rule.id);
-                
                 if (!exists) {
                     notes.push({
                         id: Date.now().toString() + Math.random(),
@@ -202,6 +196,19 @@ function createNote(container, dateKey, data = { title: DEFAULT_TITLE, body: DEF
     const bodyEl = note.querySelector('.note-body');
     const settingsBtn = note.querySelector('.icon-settings');
 
+    // --- COLLAPSE LOGIC ---
+    const updateCollapseState = () => {
+        const bodyText = bodyEl.innerText.trim();
+        if (bodyText === DEFAULT_BODY || bodyText === "") {
+            note.classList.add('collapsed');
+        } else {
+            note.classList.remove('collapsed');
+        }
+    };
+
+    // Run immediately on create
+    updateCollapseState();
+
     settingsBtn.onclick = (e) => {
         e.stopPropagation();
         openModal(note, dateKey);
@@ -225,20 +232,27 @@ function createNote(container, dateKey, data = { title: DEFAULT_TITLE, body: DEF
     note.querySelectorAll('[contenteditable]').forEach(el => {
         const isTitle = el.classList.contains('note-title');
         const defaultText = isTitle ? DEFAULT_TITLE : DEFAULT_BODY;
+        
         el.onfocus = () => handleAutoSelect(el, defaultText);
+        
         el.oninput = () => saveNotes(dateKey);
+        
         el.onblur = () => {
             const t = titleEl.innerText.trim();
             const b = bodyEl.innerText.trim();
             if ((t === DEFAULT_TITLE || t === "") && (b === DEFAULT_BODY || b === "")) {
                 note.remove();
             }
+            // Check collapse on blur
+            updateCollapseState();
             saveNotes(dateKey);
         };
     });
 
     note.ondragstart = (e) => {
         draggedElement = note;
+        // Expand while dragging so the ghost image looks correct
+        note.classList.remove('collapsed');
         placeholder.style.height = `${note.offsetHeight}px`;
         note.dataset.sourceDate = dateKey;
         setTimeout(() => note.classList.add('dragging'), 0);
@@ -246,6 +260,8 @@ function createNote(container, dateKey, data = { title: DEFAULT_TITLE, body: DEF
 
     note.ondragend = () => {
         note.classList.remove('dragging');
+        // Re-check collapse state
+        updateCollapseState();
         if (placeholder.parentNode) placeholder.remove();
         draggedElement = null;
     };
@@ -322,7 +338,6 @@ function saveSettings() {
     const currentSeriesId = currentNoteElement.dataset.seriesId;
 
     if (currentSeriesId) {
-        // EDITING
         if (selectedDays.length === 0) {
             clearSeries(currentSeriesId);
             return;
@@ -336,10 +351,8 @@ function saveSettings() {
             }
         }
     } else {
-        // NEW SERIES
         if (selectedDays.length > 0) {
             const newSeriesId = Date.now().toString();
-            // 1. Create Rule
             rules.push({
                 id: newSeriesId,
                 title: title,
@@ -348,12 +361,8 @@ function saveSettings() {
                 days: selectedDays,
                 startDate: currentDateKey
             });
-            
-            // 2. Link current
             currentNoteElement.dataset.seriesId = newSeriesId;
             currentNoteElement.classList.add('linked');
-            
-            // 3. Add to history
             addToHistory(`${newSeriesId}_${currentDateKey}`);
         }
     }
@@ -378,17 +387,24 @@ function clearSeries(seriesId) {
 }
 
 
-// --- STANDARD DRAG & SAVE ---
+// --- DRAG, DROP & HELPER UTILITIES ---
+
+function getInsertPosition(container, y) {
+    const draggableElements = [...container.querySelectorAll('.note:not(.dragging):not(.placeholder)')];
+    return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+        } else {
+            return closest;
+        }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
 
 function handleDragOver(e, container) {
     e.preventDefault();
-    const draggableElements = [...container.querySelectorAll('.note:not(.dragging):not(.placeholder)')];
-    const afterElement = draggableElements.reduce((closest, child) => {
-        const box = child.getBoundingClientRect();
-        const offset = e.clientY - box.top - box.height / 2;
-        if (offset < 0 && offset > closest.offset) return { offset: offset, element: child };
-        else return closest;
-    }, { offset: Number.NEGATIVE_INFINITY }).element;
+    const afterElement = getInsertPosition(container, e.clientY);
     if (afterElement == null) container.appendChild(placeholder);
     else container.insertBefore(placeholder, afterElement);
 }

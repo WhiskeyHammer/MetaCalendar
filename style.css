@@ -140,6 +140,9 @@ body {
     min-width: 0; 
     word-break: break-word;
     overflow-wrap: anywhere;
+    
+    /* UPDATED: Forces the arrow cursor */
+    cursor: default; 
 }
 
 .note-controls {
@@ -183,6 +186,9 @@ body {
     overflow-wrap: anywhere;
     z-index: 1;
     position: relative;
+    
+    /* UPDATED: Forces the arrow cursor */
+    cursor: default; 
 }
 
 .note-body::before {
@@ -234,3 +240,27 @@ body {
 .btn-cancel { background: #f0f0f0; color: #333; }
 .btn-save { background: #333; color: white; }
 .btn-delete { background: #fff0f0; color: #ff5f5f; margin-right: auto; }
+
+/* --- COLLAPSIBLE LOGIC --- */
+
+/* 1. Default State for Collapsed Card: Hide Body & Separator */
+.note.collapsed .note-body {
+    display: none;
+}
+
+/* 2. Hover State: Show Body when mouse is over the card */
+.note.collapsed:hover .note-body {
+    display: block;
+    animation: fadeIn 0.2s; /* Optional: smooth fade in */
+}
+
+/* 3. Focus State: Show Body if user Tabs into the title or is typing */
+.note.collapsed:focus-within .note-body {
+    display: block;
+}
+
+/* Optional animation for smoother appearance */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
