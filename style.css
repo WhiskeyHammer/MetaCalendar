@@ -84,6 +84,11 @@ body {
     background-color: var(--bg-color); padding: 15px; display: flex;
     flex-direction: column; border-right: 1px solid var(--border-color); min-width: 0;
 }
+/* TWEAK REQUEST 2: No border on last visible column */
+.day-column:last-child {
+    border-right: none;
+}
+
 .day-header { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
 .date-number { font-size: 1.4rem; font-weight: 700; margin-bottom: 20px; }
 .today { color: var(--today-color); }
@@ -164,6 +169,11 @@ body.dark-mode .icon-gear { border-color: var(--text-main); }
 .note.collapsed:hover .note-body { display: block; animation: fadeIn 0.2s; }
 .note.collapsed:focus-within .note-body { display: block; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* TWEAK REQUEST 1: Title has 10px space underneath when collapsed */
+.note.collapsed .note-header {
+    padding-bottom: 10px;
+}
 
 .modal-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
