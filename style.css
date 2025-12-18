@@ -7,13 +7,29 @@
     --text-muted: #bcbcbc;
     --separator-color: #f0f0f0;
     --modal-overlay: rgba(0,0,0,0.2);
+    --hover-bg: #f9f9f9;
     --header-height: 50px;
 }
+
+/* DARK MODE OVERRIDES */
+body.dark-mode {
+    --bg-color: #121212;
+    --border-color: #333333;
+    --today-color: #ff5f5f;
+    --note-bg: #1e1e1e;
+    --text-main: #e0e0e0;
+    --text-muted: #777777;
+    --separator-color: #333333;
+    --modal-overlay: rgba(0,0,0,0.6);
+    --hover-bg: #2a2a2a;
+}
+
 body {
     font-family: -apple-system, system-ui, sans-serif;
     background-color: var(--bg-color);
     margin: 0; padding: 0; color: var(--text-main);
     height: 100vh; display: flex; flex-direction: column;
+    transition: background-color 0.2s, color 0.2s;
 }
 .app-header {
     height: var(--header-height); display: flex; justify-content: space-between; align-items: center;
@@ -28,13 +44,13 @@ body {
 .header-icon:hover { opacity: 1; }
 .dropdown-menu {
     position: absolute; top: 100%; right: 0; width: 150px;
-    background: white; border: 1px solid #eee; border-radius: 6px;
+    background: var(--note-bg); border: 1px solid var(--border-color); border-radius: 6px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: none;
     flex-direction: column; z-index: 100; overflow: hidden; margin-top: 8px;
 }
 .dropdown-menu.show { display: flex; }
-.dropdown-item { padding: 10px 15px; font-size: 0.85rem; cursor: pointer; transition: background 0.1s; }
-.dropdown-item:hover { background: #f9f9f9; }
+.dropdown-item { padding: 10px 15px; font-size: 0.85rem; cursor: pointer; transition: background 0.1s; color: var(--text-main); }
+.dropdown-item:hover { background: var(--hover-bg); }
 
 /* --- NAVIGATION ARROWS --- */
 .nav-arrow {
@@ -48,7 +64,7 @@ body {
     justify-content: center;
     cursor: pointer;
     z-index: 50; /* Above calendar, below modal */
-    color: #333;
+    color: var(--text-main);
     opacity: 0.1; /* Subtle by default */
     transition: all 0.3s ease;
 }
@@ -68,14 +84,14 @@ body {
     background-color: var(--bg-color); padding: 15px; display: flex;
     flex-direction: column; border-right: 1px solid var(--border-color); min-width: 0;
 }
-.day-header { font-size: 0.75rem; color: #999; text-transform: uppercase; letter-spacing: 0.5px; }
+.day-header { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
 .date-number { font-size: 1.4rem; font-weight: 700; margin-bottom: 20px; }
 .today { color: var(--today-color); }
 .note-container { flex-grow: 1; display: flex; flex-direction: column; gap: 12px; cursor: cell; padding-bottom: 30px; }
 
 /* --- CARD --- */
 .note {
-    background: var(--note-bg); border: 1px solid #ddd; border-radius: 6px;
+    background: var(--note-bg); border: 1px solid var(--border-color); border-radius: 6px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.04); display: flex; flex-direction: column;
     position: relative; cursor: grab; transition: box-shadow 0.2s;
 }
@@ -109,14 +125,18 @@ body {
 .icon-close:hover::before, .icon-close:hover::after { background: var(--today-color); }
 .icon-settings { 
     box-sizing: content-box; 
-    border: 1.5px solid var(--text-muted); border-radius: 50%; width: 7px; height: 7px; 
+    border: 2px solid var(--text-muted); border-radius: 50%; width: 7px; height: 7px; 
 }
 .icon-settings:hover { border-color: var(--text-main); }
 .icon-gear { border: 2px solid #666; border-radius: 50%; width: 14px; height: 14px; }
+/* In dark mode, update gear icon border to match text */
+body.dark-mode .icon-gear { border-color: var(--text-main); }
+
 
 .note-body {
     padding: 11px 12px 10px 12px; font-size: 0.85rem; outline: none;
-    color: #666; overflow-wrap: anywhere; z-index: 1; position: relative; cursor: default;
+    color: var(--text-main); opacity: 0.8; /* Slight opacity for body text */
+    overflow-wrap: anywhere; z-index: 1; position: relative; cursor: default;
     transition: opacity 0.2s;
 }
 .note-body::before {
@@ -124,19 +144,19 @@ body {
     height: 1px; background-color: var(--separator-color);
 }
 .dragging { opacity: 0.2; }
-.placeholder { border: 2px dashed #eee; background: rgba(0,0,0,0.01); border-radius: 6px; }
+.placeholder { border: 2px dashed var(--border-color); background: rgba(0,0,0,0.01); border-radius: 6px; }
 
 .note-checkbox {
-    width: 14px; height: 14px; border: 2px solid #ddd;
+    width: 14px; height: 14px; border: 2px solid var(--border-color);
     border-radius: 4px; margin-left: 5px; cursor: pointer; flex-shrink: 0;
-    position: relative; background: white;
+    position: relative; background: var(--note-bg);
 }
-.note-checkbox:hover { border-color: #bbb; }
+.note-checkbox:hover { border-color: var(--text-muted); }
 .note.done .note-title, .note.done .note-body { opacity: 0.4; }
-.note.done .note-checkbox { background: white; border-color: #333; opacity: 1; }
+.note.done .note-checkbox { background: var(--note-bg); border-color: var(--text-main); opacity: 1; }
 .note.done .note-checkbox::after {
     content: ''; position: absolute; left: 4px; top: 1px;
-    width: 3px; height: 7px; border: solid #333;
+    width: 3px; height: 7px; border: solid var(--text-main);
     border-width: 0 2px 2px 0; transform: rotate(45deg);
 }
 .note.done .note-title { text-decoration: none; }
@@ -150,24 +170,28 @@ body {
     background: var(--modal-overlay); display: none; justify-content: center; align-items: center;
     z-index: 200; backdrop-filter: blur(2px);
 }
-.modal { background: white; padding: 25px; border-radius: 8px; width: 300px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+.modal { 
+    background: var(--note-bg); padding: 25px; border-radius: 8px; width: 300px; 
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2); 
+    color: var(--text-main);
+}
 .modal h3 { margin-top: 0; font-size: 1rem; margin-bottom: 20px; }
 .form-group { margin-bottom: 20px; }
-.form-group label { display: block; font-size: 0.75rem; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+.form-group label { display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
 .day-selector { display: flex; justify-content: space-between; gap: 5px; }
 .day-toggle {
-    width: 32px; height: 32px; border-radius: 50%; border: 1px solid #ddd;
-    display: flex; align-items: center; justify-content: center; font-size: 0.75rem; cursor: pointer; transition: all 0.2s; user-select: none; color: #666;
+    width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border-color);
+    display: flex; align-items: center; justify-content: center; font-size: 0.75rem; cursor: pointer; transition: all 0.2s; user-select: none; color: var(--text-muted);
 }
-.day-toggle:hover { border-color: #999; }
-.day-toggle.selected { background: #333; color: white; border-color: #333; font-weight: 600; }
+.day-toggle:hover { border-color: var(--text-muted); }
+.day-toggle.selected { background: var(--text-main); color: var(--bg-color); border-color: var(--text-main); font-weight: 600; }
 .form-group select, .input-text { 
-    width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; 
-    box-sizing: border-box;
+    width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.9rem; 
+    box-sizing: border-box; background: var(--bg-color); color: var(--text-main);
 }
-.help-text { font-size: 0.7rem; color: #999; margin-top: 4px; }
+.help-text { font-size: 0.7rem; color: var(--text-muted); margin-top: 4px; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; }
 .btn { padding: 8px 16px; border-radius: 4px; border: none; cursor: pointer; font-size: 0.85rem; }
-.btn-cancel { background: #f0f0f0; color: #333; }
-.btn-save { background: #333; color: white; }
-.btn-delete { background: #fff0f0; color: #ff5f5f; margin-right: auto; }
+.btn-cancel { background: var(--hover-bg); color: var(--text-main); }
+.btn-save { background: var(--text-main); color: var(--bg-color); }
+.btn-delete { background: rgba(255, 95, 95, 0.1); color: var(--today-color); margin-right: auto; }

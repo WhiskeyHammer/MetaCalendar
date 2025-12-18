@@ -62,8 +62,29 @@ function importData(input) {
 // --- VIEW & NAVIGATION LOGIC ---
 function getViewSettings() {
     const saved = localStorage.getItem(VIEW_SETTINGS_KEY);
-    if(saved) return JSON.parse(saved);
-    return { total: DEFAULT_TOTAL_DAYS, past: DEFAULT_PAST_DAYS };
+    if(saved) {
+        const parsed = JSON.parse(saved);
+        // Ensure darkMode exists if old settings are present
+        if(parsed.darkMode === undefined) parsed.darkMode = false;
+        return parsed;
+    }
+    return { total: DEFAULT_TOTAL_DAYS, past: DEFAULT_PAST_DAYS, darkMode: false };
+}
+
+function toggleDarkMode() {
+    const settings = getViewSettings();
+    settings.darkMode = !settings.darkMode;
+    localStorage.setItem(VIEW_SETTINGS_KEY, JSON.stringify(settings));
+    applyTheme();
+}
+
+function applyTheme() {
+    const settings = getViewSettings();
+    if(settings.darkMode) {
+        document.body.classList.add('dark-mode');
+    } else {
+        document.body.classList.remove('dark-mode');
+    }
 }
 
 function navigate(direction) {
@@ -72,6 +93,7 @@ function navigate(direction) {
 }
 
 function initCalendar() {
+    applyTheme(); // Apply theme on load
     calendar.innerHTML = '';
     
     // 1. Get Settings
@@ -129,9 +151,14 @@ function closeViewModal() { viewModal.style.display = 'none'; }
 function saveViewSettings() {
     const total = parseInt(document.getElementById('settingTotalDays').value);
     const past = parseInt(document.getElementById('settingPastDays').value);
+    // Dark mode is handled separately via toggleDarkMode() now
+    
     if(total > 0 && past >= 0) {
-        localStorage.setItem(VIEW_SETTINGS_KEY, JSON.stringify({ total, past }));
-        // Reset navigation when changing view settings to avoid confusion
+        // We must preserve the current darkMode state when saving days settings
+        const currentSettings = getViewSettings();
+        const newSettings = { total, past, darkMode: currentSettings.darkMode };
+        
+        localStorage.setItem(VIEW_SETTINGS_KEY, JSON.stringify(newSettings));
         navigationOffset = 0; 
         closeViewModal();
         initCalendar();
