@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Structured Weekly Planner</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="app-header">
+    <div class="app-title">Week Planner</div>
+    <div class="app-settings-container">
+        <div class="header-icon icon-gear" onclick="toggleDropdown()" title="App Settings"></div>
+        <div class="dropdown-menu" id="appDropdown">
+            <div class="dropdown-item" onclick="exportData()">Export JSON</div>
+            <div class="dropdown-item" onclick="triggerImport()">Import JSON</div>
+        </div>
+    </div>
+</header>
+
+<input type="file" id="fileInput" style="display: none;" accept=".json" onchange="importData(this)">
+
+<div class="calendar-wrapper">
+    <div class="calendar-grid" id="calendar"></div>
+</div>
+
+<div class="modal-overlay" id="settingsModal">
+    <div class="modal">
+        <h3>Repeat Settings</h3>
+        <div class="form-group">
+            <label>Repeat on</label>
+            <div class="day-selector" id="daySelector">
+                <div class="day-toggle" data-day="0">S</div>
+                <div class="day-toggle" data-day="1">M</div>
+                <div class="day-toggle" data-day="2">T</div>
+                <div class="day-toggle" data-day="3">W</div>
+                <div class="day-toggle" data-day="4">T</div>
+                <div class="day-toggle" data-day="5">F</div>
+                <div class="day-toggle" data-day="6">S</div>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>What to Copy?</label>
+            <select id="repeatScope">
+                <option value="all">Title & Notes</option>
+                <option value="title">Title Only (Fresh Notes)</option>
+            </select>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-delete" id="stopRepeatBtn" style="display:none;">Clear Series</button>
+            <button class="btn btn-cancel" onclick="closeModal()">Cancel</button>
+            <button class="btn btn-save" onclick="saveSettings()">Save</button>
+        </div>
+    </div>
+</div>
+
+<script src="script.js" defer></script>
+</body>
+</html>
