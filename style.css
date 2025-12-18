@@ -107,7 +107,7 @@ body {
 .icon-gear { border: 2px solid #666; border-radius: 50%; width: 14px; height: 14px; }
 
 .note-body {
-    padding: 11px 12px 10px 12px; font-size: 0.85rem; outline: none;
+    padding: 5px 12px 6px 12px; font-size: 0.85rem; outline: none;
     color: #666; overflow-wrap: anywhere; z-index: 1; position: relative; cursor: default;
     transition: opacity 0.2s;
 }
