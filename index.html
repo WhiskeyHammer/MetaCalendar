@@ -13,15 +13,26 @@
     <div class="app-settings-container">
         <div class="header-icon icon-gear" onclick="toggleDropdown()" title="App Settings"></div>
         <div class="dropdown-menu" id="appDropdown">
+            <div class="dropdown-item" onclick="openViewModal()">Days Settings</div>
             <div class="dropdown-item" onclick="exportData()">Export JSON</div>
             <div class="dropdown-item" onclick="triggerImport()">Import JSON</div>
         </div>
     </div>
 </header>
+
 <input type="file" id="fileInput" style="display: none;" accept=".json" onchange="importData(this)">
+
+<div class="nav-arrow nav-left" onclick="navigate(-1)">
+    <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+</div>
+<div class="nav-arrow nav-right" onclick="navigate(1)">
+    <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+</div>
+
 <div class="calendar-wrapper">
     <div class="calendar-grid" id="calendar"></div>
 </div>
+
 <div class="modal-overlay" id="settingsModal">
     <div class="modal">
         <h3>Repeat Settings</h3>
@@ -51,6 +62,26 @@
         </div>
     </div>
 </div>
+
+<div class="modal-overlay" id="viewModal">
+    <div class="modal">
+        <h3>Days Settings</h3> <div class="form-group">
+            <label>Total Days to Show</label>
+            <input type="number" id="settingTotalDays" min="1" max="14" class="input-text">
+            <div class="help-text">How many columns visible at once.</div>
+        </div>
+        <div class="form-group">
+            <label>Past Days Offset</label>
+            <input type="number" id="settingPastDays" min="0" max="14" class="input-text">
+            <div class="help-text">e.g. 1 = Start from Yesterday.</div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-cancel" onclick="closeViewModal()">Cancel</button>
+            <button class="btn btn-save" onclick="saveViewSettings()">Save</button>
+        </div>
+    </div>
+</div>
+
 <script src="script.js" defer></script>
 </body>
 </html>

@@ -17,7 +17,7 @@ body {
 }
 .app-header {
     height: var(--header-height); display: flex; justify-content: space-between; align-items: center;
-    padding: 0 20px; background-color: var(--bg-color); border-bottom: 1px solid var(--border-color);
+    padding: 0 20px; background-color: var(--bg-color);
 }
 .app-title { font-weight: 700; font-size: 1rem; letter-spacing: -0.5px; }
 .app-settings-container { position: relative; }
@@ -35,10 +35,34 @@ body {
 .dropdown-menu.show { display: flex; }
 .dropdown-item { padding: 10px 15px; font-size: 0.85rem; cursor: pointer; transition: background 0.1s; }
 .dropdown-item:hover { background: #f9f9f9; }
-.calendar-wrapper { padding: 20px; flex-grow: 1; overflow-y: auto; }
+
+/* --- NAVIGATION ARROWS --- */
+.nav-arrow {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 60px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 50; /* Above calendar, below modal */
+    color: #333;
+    opacity: 0.1; /* Subtle by default */
+    transition: all 0.3s ease;
+}
+.nav-arrow:hover {
+    opacity: 1; /* Obvious on hover */
+}
+.nav-left { left: 0; }
+.nav-right { right: 0; }
+
+.calendar-wrapper { padding: 20px 60px; /* Added padding so arrows don't overlap content */ flex-grow: 1; overflow-y: auto; }
 .calendar-grid {
-    display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px;
-    background-color: var(--border-color); min-height: 85vh; border: 1px solid var(--border-color);
+    display: grid; 
+    gap: 1px;
+    background-color: var(--border-color); min-height: 85vh; border: 0px 1px 0px 1px solid var(--border-color);
 }
 .day-column {
     background-color: var(--bg-color); padding: 15px; display: flex;
@@ -56,12 +80,10 @@ body {
     position: relative; cursor: grab; transition: box-shadow 0.2s;
 }
 .note:hover { box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
-/* Linked border removed */
-
 .note-header {
     display: flex; justify-content: space-between; 
     align-items: flex-start;
-    padding: 5px 12px 5px 12px; z-index: 1;
+    padding: 10px 12px 5px 12px; z-index: 1;
 }
 .note-title {
     font-weight: 600; font-size: 0.85rem; outline: none; flex-grow: 1;
@@ -69,20 +91,13 @@ body {
     word-break: break-word; overflow-wrap: anywhere; cursor: default;
     padding-top: 1px; transition: opacity 0.2s;
 }
-
-/* CONTROLS (Right Side) */
 .note-controls {
     display: flex; gap: 8px; 
-    align-items: center; 
-    height: 20px;
-    flex-shrink: 0;
+    align-items: center; height: 20px; flex-shrink: 0;
 }
-
 .icon-settings, .icon-close, .note-checkbox { opacity: 0; transition: opacity 0.2s; }
 .note:hover .icon-settings, .note:hover .icon-close, .note:hover .note-checkbox { opacity: 1; }
 .note.done .note-checkbox { opacity: 1 !important; }
-
-/* ICONS */
 .icon {
     width: 12px; height: 12px; position: relative;
     cursor: pointer; display: flex; align-items: center; justify-content: center;
@@ -92,22 +107,15 @@ body {
 }
 .icon-close::after { transform: rotate(-45deg); }
 .icon-close:hover::before, .icon-close:hover::after { background: var(--today-color); }
-.icon-drag { display: none; }
-
-/* SETTINGS ICON FIX */
-/* Now uses 1.5px border and lighter grey to match other icons */
 .icon-settings { 
     box-sizing: content-box; 
-    border: 2px solid var(--text-muted); /* Thinner and lighter */
-    border-radius: 50%; width: 7px; height: 7px; 
+    border: 1.5px solid var(--text-muted); border-radius: 50%; width: 7px; height: 7px; 
 }
 .icon-settings:hover { border-color: var(--text-main); }
-
-/* APP HEADER GEAR ICON */
 .icon-gear { border: 2px solid #666; border-radius: 50%; width: 14px; height: 14px; }
 
 .note-body {
-    padding: 5px 12px 6px 12px; font-size: 0.85rem; outline: none;
+    padding: 11px 12px 10px 12px; font-size: 0.85rem; outline: none;
     color: #666; overflow-wrap: anywhere; z-index: 1; position: relative; cursor: default;
     transition: opacity 0.2s;
 }
@@ -118,36 +126,25 @@ body {
 .dragging { opacity: 0.2; }
 .placeholder { border: 2px dashed #eee; background: rgba(0,0,0,0.01); border-radius: 6px; }
 
-/* --- CHECKBOX --- */
 .note-checkbox {
     width: 14px; height: 14px; border: 2px solid #ddd;
     border-radius: 4px; margin-left: 5px; cursor: pointer; flex-shrink: 0;
     position: relative; background: white;
 }
 .note-checkbox:hover { border-color: #bbb; }
-
-/* DONE STATE */
-.note.done .note-title,
-.note.done .note-body {
-    opacity: 0.4;
-}
-.note.done .note-checkbox {
-    background: white; border-color: #333; opacity: 1;
-}
+.note.done .note-title, .note.done .note-body { opacity: 0.4; }
+.note.done .note-checkbox { background: white; border-color: #333; opacity: 1; }
 .note.done .note-checkbox::after {
     content: ''; position: absolute; left: 4px; top: 1px;
     width: 3px; height: 7px; border: solid #333;
     border-width: 0 2px 2px 0; transform: rotate(45deg);
 }
 .note.done .note-title { text-decoration: none; }
-
-/* --- COLLAPSIBLE --- */
 .note.collapsed .note-body { display: none; }
 .note.collapsed:hover .note-body { display: block; animation: fadeIn 0.2s; }
 .note.collapsed:focus-within .note-body { display: block; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-/* --- MODAL --- */
 .modal-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: var(--modal-overlay); display: none; justify-content: center; align-items: center;
@@ -164,7 +161,11 @@ body {
 }
 .day-toggle:hover { border-color: #999; }
 .day-toggle.selected { background: #333; color: white; border-color: #333; font-weight: 600; }
-.form-group select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; }
+.form-group select, .input-text { 
+    width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; 
+    box-sizing: border-box;
+}
+.help-text { font-size: 0.7rem; color: #999; margin-top: 4px; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; }
 .btn { padding: 8px 16px; border-radius: 4px; border: none; cursor: pointer; font-size: 0.85rem; }
 .btn-cancel { background: #f0f0f0; color: #333; }

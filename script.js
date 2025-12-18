@@ -3,12 +3,20 @@ const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DEFAULT_TITLE = "Title";
 const DEFAULT_BODY = "Notes...";
 const DATA_VERSION = "v11"; 
+const VIEW_SETTINGS_KEY = "tweek-view-settings";
+
+// DEFAULT VIEW SETTINGS
+const DEFAULT_TOTAL_DAYS = 7;
+const DEFAULT_PAST_DAYS = 1;
 
 let draggedElement = null;
 let placeholder = document.createElement('div');
 placeholder.className = 'placeholder';
 let currentNoteElement = null;
 let currentDateKey = null;
+
+// NAVIGATION STATE
+let navigationOffset = 0; // 0 = Default (based on pastDays setting)
 
 function toggleDropdown() { document.getElementById('appDropdown').classList.toggle('show'); }
 window.addEventListener('click', (e) => {
@@ -51,16 +59,42 @@ function importData(input) {
     reader.readAsText(file); toggleDropdown();
 }
 
+// --- VIEW & NAVIGATION LOGIC ---
+function getViewSettings() {
+    const saved = localStorage.getItem(VIEW_SETTINGS_KEY);
+    if(saved) return JSON.parse(saved);
+    return { total: DEFAULT_TOTAL_DAYS, past: DEFAULT_PAST_DAYS };
+}
+
+function navigate(direction) {
+    navigationOffset += direction;
+    initCalendar();
+}
+
 function initCalendar() {
     calendar.innerHTML = '';
+    
+    // 1. Get Settings
+    const settings = getViewSettings();
+    const totalDays = settings.total;
+    const pastDays = settings.past;
+
+    // 2. Apply Dynamic Grid Columns
+    calendar.style.gridTemplateColumns = `repeat(${totalDays}, 1fr)`;
+
+    // 3. Calculate Start Date (Past Days Setting + Navigation Shift)
     const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 1);
-    for (let i = 0; i < 7; i++) {
+    startDate.setDate(startDate.getDate() - pastDays + navigationOffset);
+
+    // 4. Generate Columns
+    for (let i = 0; i < totalDays; i++) {
         const currentDate = new Date(startDate);
         currentDate.setDate(startDate.getDate() + i);
         const dateKey = currentDate.toISOString().split('T')[0];
         const isToday = new Date().toDateString() === currentDate.toDateString();
+        
         materializeRecurringNotes(dateKey, currentDate.getDay());
+        
         const col = document.createElement('div');
         col.className = 'day-column';
         col.innerHTML = `
@@ -81,6 +115,31 @@ function initCalendar() {
         loadNotes(dateKey); 
     }
 }
+
+// --- VIEW MODAL HANDLERS ---
+const viewModal = document.getElementById('viewModal');
+function openViewModal() {
+    const settings = getViewSettings();
+    document.getElementById('settingTotalDays').value = settings.total;
+    document.getElementById('settingPastDays').value = settings.past;
+    viewModal.style.display = 'flex';
+    toggleDropdown(); // Close menu
+}
+function closeViewModal() { viewModal.style.display = 'none'; }
+function saveViewSettings() {
+    const total = parseInt(document.getElementById('settingTotalDays').value);
+    const past = parseInt(document.getElementById('settingPastDays').value);
+    if(total > 0 && past >= 0) {
+        localStorage.setItem(VIEW_SETTINGS_KEY, JSON.stringify({ total, past }));
+        // Reset navigation when changing view settings to avoid confusion
+        navigationOffset = 0; 
+        closeViewModal();
+        initCalendar();
+    } else {
+        alert("Please enter valid numbers");
+    }
+}
+
 
 function getRecurringRules() { return JSON.parse(localStorage.getItem(`tweek-rules-${DATA_VERSION}`) || "[]"); }
 function setRecurringRules(rules) { localStorage.setItem(`tweek-rules-${DATA_VERSION}`, JSON.stringify(rules)); }
@@ -313,5 +372,8 @@ function handleDrop(e, targetContainer, targetDateKey) {
     saveNotes(sourceDateKey); saveNotes(targetDateKey);
     draggedElement.dataset.sourceDate = targetDateKey;
 }
-window.onclick = function(event) { if (event.target == modalOverlay) closeModal(); }
+window.onclick = function(event) { 
+    if (event.target == modalOverlay) closeModal(); 
+    if (event.target == viewModal) closeViewModal(); 
+}
 initCalendar();
