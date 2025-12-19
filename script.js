@@ -18,6 +18,14 @@ let currentDateKey = null;
 // NAVIGATION STATE
 let navigationOffset = 0; // 0 = Default (based on pastDays setting)
 
+// HELPER: Convert Date object to "YYYY-MM-DD" using LOCAL time, not UTC.
+function getLocalDateKey(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 function toggleDropdown() { document.getElementById('appDropdown').classList.toggle('show'); }
 window.addEventListener('click', (e) => {
     if (!e.target.closest('.app-settings-container')) { document.getElementById('appDropdown').classList.remove('show'); }
@@ -64,7 +72,6 @@ function getViewSettings() {
     const saved = localStorage.getItem(VIEW_SETTINGS_KEY);
     if(saved) {
         const parsed = JSON.parse(saved);
-        // Ensure darkMode exists if old settings are present
         if(parsed.darkMode === undefined) parsed.darkMode = false;
         return parsed;
     }
@@ -112,7 +119,10 @@ function initCalendar() {
     for (let i = 0; i < totalDays; i++) {
         const currentDate = new Date(startDate);
         currentDate.setDate(startDate.getDate() + i);
-        const dateKey = currentDate.toISOString().split('T')[0];
+        
+        // FIX: Use local time date string for the ID to match visual header
+        const dateKey = getLocalDateKey(currentDate);
+        
         const isToday = new Date().toDateString() === currentDate.toDateString();
         
         materializeRecurringNotes(dateKey, currentDate.getDay());
@@ -151,10 +161,8 @@ function closeViewModal() { viewModal.style.display = 'none'; }
 function saveViewSettings() {
     const total = parseInt(document.getElementById('settingTotalDays').value);
     const past = parseInt(document.getElementById('settingPastDays').value);
-    // Dark mode is handled separately via toggleDarkMode() now
     
     if(total > 0 && past >= 0) {
-        // We must preserve the current darkMode state when saving days settings
         const currentSettings = getViewSettings();
         const newSettings = { total, past, darkMode: currentSettings.darkMode };
         
@@ -324,6 +332,10 @@ dayToggles.forEach(toggle => { toggle.onclick = () => { toggle.classList.toggle(
 function openModal(noteEl, dateKey) {
     currentNoteElement = noteEl; currentDateKey = dateKey;
     const seriesId = noteEl.dataset.seriesId;
+    
+    // Reset Date Input
+    document.getElementById('moveDateInput').value = '';
+
     dayToggles.forEach(t => t.classList.remove('selected'));
     if (seriesId) {
         const rules = getRecurringRules();
@@ -350,6 +362,40 @@ function openModal(noteEl, dateKey) {
     modalOverlay.style.display = 'flex';
 }
 function closeModal() { modalOverlay.style.display = 'none'; currentNoteElement = null; }
+
+// --- MOVE NOTE LOGIC ---
+function moveNoteToDate() {
+    const targetDate = document.getElementById('moveDateInput').value;
+    if (!targetDate) return;
+
+    if (targetDate === currentDateKey) {
+        alert("Select a different date to move.");
+        return;
+    }
+
+    const noteData = {
+        id: currentNoteElement.dataset.id,
+        title: currentNoteElement.querySelector('.note-title').innerText,
+        body: currentNoteElement.querySelector('.note-body').innerText,
+        seriesId: currentNoteElement.dataset.seriesId || null,
+        isDone: currentNoteElement.classList.contains('done')
+    };
+
+    const targetNotes = JSON.parse(localStorage.getItem(`tweek-final-${DATA_VERSION}-${targetDate}`) || "[]");
+    targetNotes.push(noteData);
+    localStorage.setItem(`tweek-final-${DATA_VERSION}-${targetDate}`, JSON.stringify(targetNotes));
+
+    currentNoteElement.remove();
+    saveNotes(currentDateKey);
+
+    const targetContainer = document.querySelector(`[data-date="${targetDate}"]`);
+    if (targetContainer) {
+        createNote(targetContainer, targetDate, noteData);
+    }
+
+    closeModal();
+}
+
 function saveSettings() {
     const title = currentNoteElement.querySelector('.note-title').innerText;
     const body = currentNoteElement.querySelector('.note-body').innerText;
@@ -398,14 +444,42 @@ function handleDragOver(e, container) {
     if (afterElement == null) container.appendChild(placeholder);
     else container.insertBefore(placeholder, afterElement);
 }
+
+// --- UPDATED handleDrop: Re-creates element AND inserts at placeholder position ---
 function handleDrop(e, targetContainer, targetDateKey) {
     e.preventDefault();
     if (!draggedElement) return;
     const sourceDateKey = draggedElement.dataset.sourceDate;
-    targetContainer.replaceChild(draggedElement, placeholder);
-    saveNotes(sourceDateKey); saveNotes(targetDateKey);
-    draggedElement.dataset.sourceDate = targetDateKey;
+
+    // 1. Extract data
+    const noteData = {
+        id: draggedElement.dataset.id,
+        title: draggedElement.querySelector('.note-title').innerText,
+        body: draggedElement.querySelector('.note-body').innerText,
+        seriesId: draggedElement.dataset.seriesId || null,
+        isDone: draggedElement.classList.contains('done')
+    };
+
+    // 2. Insert new note in the correct position (where the placeholder is)
+    if (placeholder.parentNode === targetContainer) {
+        // Insert new note before the placeholder to hold the spot
+        createNote(targetContainer, targetDateKey, noteData, placeholder);
+    } else {
+        // Fallback (append)
+        createNote(targetContainer, targetDateKey, noteData);
+    }
+
+    // 3. Remove old elements
+    draggedElement.remove();
+    if (placeholder.parentNode) placeholder.remove();
+
+    // 4. Save
+    saveNotes(sourceDateKey);
+    saveNotes(targetDateKey);
+
+    draggedElement = null; // Cleanup
 }
+
 window.onclick = function(event) { 
     if (event.target == modalOverlay) closeModal(); 
     if (event.target == viewModal) closeViewModal(); 

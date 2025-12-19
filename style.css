@@ -1,13 +1,14 @@
 :root {
-    --bg-color: #fcfcfc;
-    --border-color: #efefef;
+    /* UPDATED LIGHT MODE PALETTE (Softer/Less Bright) */
+    --bg-color: #f4f4f4;
+    --border-color: #e0e0e0;
     --today-color: #ff5f5f;
     --note-bg: #ffffff;
     --text-main: #333;
     --text-muted: #bcbcbc;
-    --separator-color: #f0f0f0;
+    --separator-color: #e0e0e0;
     --modal-overlay: rgba(0,0,0,0.2);
-    --hover-bg: #f9f9f9;
+    --hover-bg: #e8e8e8;
     --header-height: 50px;
 }
 
@@ -170,6 +171,7 @@ body.dark-mode .icon-gear { border-color: var(--text-main); }
     color: var(--text-main); opacity: 0.8; 
     overflow-wrap: anywhere; z-index: 1; position: relative; cursor: default;
     transition: opacity 0.2s;
+    white-space: pre-wrap; /* Ensures newlines are respected */
 }
 .note-body::before {
     content: ''; position: absolute; top: 0; left: 10%; right: 10%;
