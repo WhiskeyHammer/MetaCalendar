@@ -256,7 +256,14 @@ function createNote(container, dateKey, data = { title: DEFAULT_TITLE, body: DEF
         }
     };
     titleEl.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); bodyEl.focus(); } };
-    bodyEl.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); bodyEl.blur(); } };
+    
+    // Allow Shift+Enter to create new line
+    bodyEl.onkeydown = (e) => { 
+        if (e.key === 'Enter' && !e.shiftKey) { 
+            e.preventDefault(); 
+            bodyEl.blur(); 
+        } 
+    };
 
     note.querySelectorAll('[contenteditable]').forEach(el => {
         const isTitle = el.classList.contains('note-title');
