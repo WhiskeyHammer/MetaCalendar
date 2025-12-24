@@ -207,7 +207,8 @@ function materializeRecurringNotes(dateKey, dayOfWeek) {
                     notes.push({
                         id: Date.now().toString() + Math.random(),
                         title: rule.title,
-                        seriesId: rule.id
+                        seriesId: rule.id,
+                        cards: []
                     });
                     addToHistory(creationKey);
                     hasChanges = true;
@@ -218,7 +219,7 @@ function materializeRecurringNotes(dateKey, dayOfWeek) {
     if (hasChanges) { localStorage.setItem(`tweek-final-${DATA_VERSION}-${dateKey}`, JSON.stringify(notes)); }
 }
 
-function createNote(container, dateKey, data = { title: DEFAULT_TITLE, id: Date.now().toString() }, insertBeforeEl = null) {
+function createNote(container, dateKey, data = { title: DEFAULT_TITLE, id: Date.now().toString(), cards: [] }, insertBeforeEl = null) {
     const note = document.createElement('div');
     note.className = 'note';
     if(data.seriesId) note.classList.add('linked');
@@ -234,10 +235,23 @@ function createNote(container, dateKey, data = { title: DEFAULT_TITLE, id: Date.
                 <div class="icon icon-close delete-btn" title="Delete"></div>
             </div>
         </div>
+        <div class="card-container"></div>
     `;
 
     const titleEl = note.querySelector('.note-title');
     const settingsBtn = note.querySelector('.icon-settings');
+    const cardContainer = note.querySelector('.card-container');
+
+    // Click on time block (but not on cards) to add a new card
+    note.addEventListener('click', (e) => {
+        if (e.target === note || e.target === cardContainer) {
+            createCard(cardContainer, dateKey, note.dataset.id);
+        }
+    });
+
+    // Card drag and drop
+    cardContainer.ondragover = (e) => handleCardDragOver(e, cardContainer);
+    cardContainer.ondrop = (e) => handleCardDrop(e, cardContainer, dateKey, note.dataset.id);
 
     settingsBtn.onclick = (e) => { e.stopPropagation(); openModal(note, dateKey); };
     note.querySelector('.delete-btn').onclick = (e) => { e.stopPropagation(); note.remove(); saveNotes(dateKey); };
@@ -259,6 +273,7 @@ function createNote(container, dateKey, data = { title: DEFAULT_TITLE, id: Date.
     };
 
     note.ondragstart = (e) => {
+        if (e.target !== note) return;
         draggedElement = note;
         note.dataset.sourceDate = dateKey;
         setTimeout(() => note.classList.add('dragging'), 0);
@@ -270,17 +285,160 @@ function createNote(container, dateKey, data = { title: DEFAULT_TITLE, id: Date.
     };
     if (insertBeforeEl) container.insertBefore(note, insertBeforeEl);
     else container.appendChild(note);
+    
+    // Load existing cards
+    if (data.cards && data.cards.length > 0) {
+        data.cards.forEach(cardData => createCard(cardContainer, dateKey, note.dataset.id, cardData, null, false));
+    }
+    
     if (data.title === DEFAULT_TITLE && !data.seriesId) titleEl.focus();
+}
+
+// --- CARD FUNCTIONS ---
+const DEFAULT_CARD_TITLE = "Task";
+let draggedCard = null;
+let cardPlaceholder = document.createElement('div');
+cardPlaceholder.className = 'card-placeholder';
+
+function createCard(container, dateKey, noteId, data = { title: DEFAULT_CARD_TITLE, id: Date.now().toString() }, insertBeforeEl = null, shouldFocus = true) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.draggable = true;
+    card.dataset.id = data.id || Date.now().toString();
+
+    card.innerHTML = `
+        <div class="card-title" contenteditable="true">${data.title}</div>
+        <div class="card-delete icon icon-close" title="Delete"></div>
+    `;
+
+    const titleEl = card.querySelector('.card-title');
+    const deleteBtn = card.querySelector('.card-delete');
+
+    deleteBtn.onclick = (e) => { 
+        e.stopPropagation(); 
+        card.remove(); 
+        saveNotes(dateKey); 
+    };
+
+    titleEl.onclick = (e) => e.stopPropagation();
+    titleEl.onkeydown = (e) => { 
+        if (e.key === 'Enter') { 
+            e.preventDefault(); 
+            titleEl.blur(); 
+        } 
+    };
+    titleEl.onfocus = () => {
+        if (titleEl.innerText.trim() === DEFAULT_CARD_TITLE) {
+            setTimeout(() => { document.execCommand('selectAll', false, null); }, 0);
+        }
+    };
+    titleEl.oninput = () => saveNotes(dateKey);
+    titleEl.onblur = () => {
+        const t = titleEl.innerText.trim();
+        if (t === DEFAULT_CARD_TITLE || t === "") { card.remove(); }
+        saveNotes(dateKey);
+    };
+
+    card.ondragstart = (e) => {
+        e.stopPropagation();
+        draggedCard = card;
+        card.dataset.sourceDate = dateKey;
+        card.dataset.sourceNoteId = noteId;
+        setTimeout(() => card.classList.add('dragging'), 0);
+    };
+    card.ondragend = () => {
+        card.classList.remove('dragging');
+        if (cardPlaceholder.parentNode) cardPlaceholder.remove();
+        draggedCard = null;
+    };
+
+    if (insertBeforeEl) container.insertBefore(card, insertBeforeEl);
+    else container.appendChild(card);
+    
+    if (shouldFocus && data.title === DEFAULT_CARD_TITLE) titleEl.focus();
+}
+
+function getCardInsertPosition(container, y) {
+    const cards = [...container.querySelectorAll('.card:not(.dragging)')];
+    return cards.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        if (offset < 0 && offset > closest.offset) { return { offset: offset, element: child }; }
+        else { return closest; }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+function handleCardDragOver(e, container) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!draggedCard) return;
+    
+    // Don't show placeholder when hovering over the dragged card itself
+    const draggedRect = draggedCard.getBoundingClientRect();
+    if (e.clientY >= draggedRect.top && e.clientY <= draggedRect.bottom) {
+        if (cardPlaceholder.parentNode) cardPlaceholder.remove();
+        return;
+    }
+    
+    const afterElement = getCardInsertPosition(container, e.clientY);
+    
+    if (afterElement == null) container.appendChild(cardPlaceholder);
+    else container.insertBefore(cardPlaceholder, afterElement);
+}
+
+function handleCardDrop(e, targetContainer, targetDateKey, targetNoteId) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!draggedCard) return;
+    
+    // If no placeholder visible, card stays in original position
+    if (!cardPlaceholder.parentNode) {
+        draggedCard = null;
+        return;
+    }
+    
+    const sourceDateKey = draggedCard.dataset.sourceDate;
+    const sourceNoteId = draggedCard.dataset.sourceNoteId;
+
+    const cardData = {
+        id: draggedCard.dataset.id,
+        title: draggedCard.querySelector('.card-title').innerText
+    };
+
+    if (cardPlaceholder.parentNode === targetContainer) {
+        createCard(targetContainer, targetDateKey, targetNoteId, cardData, cardPlaceholder, false);
+    } else {
+        createCard(targetContainer, targetDateKey, targetNoteId, cardData, null, false);
+    }
+
+    draggedCard.remove();
+    if (cardPlaceholder.parentNode) cardPlaceholder.remove();
+
+    saveNotes(sourceDateKey);
+    if (sourceDateKey !== targetDateKey) {
+        saveNotes(targetDateKey);
+    } else {
+        saveNotes(targetDateKey);
+    }
+
+    draggedCard = null;
 }
 
 function saveNotes(dateKey) {
     const container = document.querySelector(`[data-date="${dateKey}"]`);
     if (!container) return;
-    const notes = Array.from(container.querySelectorAll('.note')).map(n => ({
-        id: n.dataset.id,
-        title: n.querySelector('.note-title').innerText,
-        seriesId: n.dataset.seriesId || null
-    }));
+    const notes = Array.from(container.querySelectorAll('.note')).map(n => {
+        const cards = Array.from(n.querySelectorAll('.card')).map(c => ({
+            id: c.dataset.id,
+            title: c.querySelector('.card-title').innerText
+        }));
+        return {
+            id: n.dataset.id,
+            title: n.querySelector('.note-title').innerText,
+            seriesId: n.dataset.seriesId || null,
+            cards: cards
+        };
+    });
     localStorage.setItem(`tweek-final-${DATA_VERSION}-${dateKey}`, JSON.stringify(notes));
 }
 
@@ -336,10 +494,16 @@ function moveNoteToDate() {
         return;
     }
 
+    const cards = Array.from(currentNoteElement.querySelectorAll('.card')).map(c => ({
+        id: c.dataset.id,
+        title: c.querySelector('.card-title').innerText
+    }));
+
     const noteData = {
         id: currentNoteElement.dataset.id,
         title: currentNoteElement.querySelector('.note-title').innerText,
-        seriesId: currentNoteElement.dataset.seriesId || null
+        seriesId: currentNoteElement.dataset.seriesId || null,
+        cards: cards
     };
 
     const targetNotes = JSON.parse(localStorage.getItem(`tweek-final-${DATA_VERSION}-${targetDate}`) || "[]");
@@ -399,7 +563,21 @@ function getInsertPosition(container, y) {
 }
 function handleDragOver(e, container) {
     e.preventDefault();
+    if (draggedCard) return; // Don't show time block placeholder when dragging cards
+    if (!draggedElement) return;
+    
     const afterElement = getInsertPosition(container, e.clientY);
+    
+    // Get the next sibling of dragged element, ignoring placeholder
+    let nextSibling = draggedElement.nextElementSibling;
+    if (nextSibling === placeholder) nextSibling = nextSibling.nextElementSibling;
+    
+    // Don't show placeholder if dropping here would keep element in same position
+    if (afterElement === nextSibling) {
+        if (placeholder.parentNode) placeholder.remove();
+        return;
+    }
+    
     if (afterElement == null) container.appendChild(placeholder);
     else container.insertBefore(placeholder, afterElement);
 }
@@ -407,14 +585,27 @@ function handleDragOver(e, container) {
 // --- UPDATED handleDrop: Re-creates element AND inserts at placeholder position ---
 function handleDrop(e, targetContainer, targetDateKey) {
     e.preventDefault();
-    if (!draggedElement) return;
+    if (!draggedElement || draggedCard) return; // Ignore if dragging a card
+    
+    // If no placeholder visible, element stays in original position
+    if (!placeholder.parentNode) {
+        draggedElement = null;
+        return;
+    }
+    
     const sourceDateKey = draggedElement.dataset.sourceDate;
 
-    // 1. Extract data
+    // 1. Extract data including cards
+    const cards = Array.from(draggedElement.querySelectorAll('.card')).map(c => ({
+        id: c.dataset.id,
+        title: c.querySelector('.card-title').innerText
+    }));
+
     const noteData = {
         id: draggedElement.dataset.id,
         title: draggedElement.querySelector('.note-title').innerText,
-        seriesId: draggedElement.dataset.seriesId || null
+        seriesId: draggedElement.dataset.seriesId || null,
+        cards: cards
     };
 
     // 2. Insert new note in the correct position (where the placeholder is)
