@@ -134,6 +134,13 @@ function initCalendar() {
             <div class="note-container" data-date="${dateKey}"></div>
         `;
         const container = col.querySelector('.note-container');
+        const dayHeader = col.querySelector('.day-header');
+        const dateNumber = col.querySelector('.date-number');
+        
+        // Click on header or date number adds note at bottom
+        dayHeader.onclick = () => createNote(container, dateKey);
+        dateNumber.onclick = () => createNote(container, dateKey);
+        
         container.onclick = (e) => {
             if(e.target === container) {
                 const insertBefore = getInsertPosition(container, e.clientY);
@@ -253,7 +260,6 @@ function createNote(container, dateKey, data = { title: DEFAULT_TITLE, id: Date.
 
     note.ondragstart = (e) => {
         draggedElement = note;
-        placeholder.style.height = `${note.offsetHeight}px`;
         note.dataset.sourceDate = dateKey;
         setTimeout(() => note.classList.add('dragging'), 0);
     };
