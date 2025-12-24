@@ -1,7 +1,6 @@
 const calendar = document.getElementById('calendar');
 const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DEFAULT_TITLE = "Title";
-const DEFAULT_BODY = "Notes...";
 const DATA_VERSION = "v11"; 
 const VIEW_SETTINGS_KEY = "tweek-view-settings";
 
@@ -201,7 +200,6 @@ function materializeRecurringNotes(dateKey, dayOfWeek) {
                     notes.push({
                         id: Date.now().toString() + Math.random(),
                         title: rule.title,
-                        body: rule.scope === 'all' ? rule.body : DEFAULT_BODY,
                         seriesId: rule.id
                     });
                     addToHistory(creationKey);
@@ -213,11 +211,10 @@ function materializeRecurringNotes(dateKey, dayOfWeek) {
     if (hasChanges) { localStorage.setItem(`tweek-final-${DATA_VERSION}-${dateKey}`, JSON.stringify(notes)); }
 }
 
-function createNote(container, dateKey, data = { title: DEFAULT_TITLE, body: DEFAULT_BODY, id: Date.now().toString(), isDone: false }, insertBeforeEl = null) {
+function createNote(container, dateKey, data = { title: DEFAULT_TITLE, id: Date.now().toString() }, insertBeforeEl = null) {
     const note = document.createElement('div');
     note.className = 'note';
     if(data.seriesId) note.classList.add('linked');
-    if(data.isDone) note.classList.add('done');
     note.draggable = true;
     note.dataset.id = data.id || Date.now().toString();
     if(data.seriesId) note.dataset.seriesId = data.seriesId;
@@ -228,32 +225,12 @@ function createNote(container, dateKey, data = { title: DEFAULT_TITLE, body: DEF
             <div class="note-controls">
                 <div class="icon icon-settings" title="Settings"></div>
                 <div class="icon icon-close delete-btn" title="Delete"></div>
-                <div class="note-checkbox" title="Mark as done"></div>
             </div>
         </div>
-        <div class="note-body" contenteditable="true">${data.body}</div>
     `;
 
     const titleEl = note.querySelector('.note-title');
-    const bodyEl = note.querySelector('.note-body');
-    const checkboxEl = note.querySelector('.note-checkbox');
     const settingsBtn = note.querySelector('.icon-settings');
-
-    checkboxEl.onclick = (e) => {
-        e.stopPropagation();
-        note.classList.toggle('done');
-        saveNotes(dateKey);
-    };
-
-    const updateCollapseState = () => {
-        const bodyText = bodyEl.innerText.trim();
-        if (bodyText === DEFAULT_BODY || bodyText === "") {
-            note.classList.add('collapsed');
-        } else {
-            note.classList.remove('collapsed');
-        }
-    };
-    updateCollapseState();
 
     settingsBtn.onclick = (e) => { e.stopPropagation(); openModal(note, dateKey); };
     note.querySelector('.delete-btn').onclick = (e) => { e.stopPropagation(); note.remove(); saveNotes(dateKey); };
@@ -263,40 +240,25 @@ function createNote(container, dateKey, data = { title: DEFAULT_TITLE, body: DEF
             setTimeout(() => { document.execCommand('selectAll', false, null); }, 0);
         }
     };
-    titleEl.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); bodyEl.focus(); } };
     
-    // Allow Shift+Enter to create new line
-    bodyEl.onkeydown = (e) => { 
-        if (e.key === 'Enter' && !e.shiftKey) { 
-            e.preventDefault(); 
-            bodyEl.blur(); 
-        } 
-    };
+    titleEl.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); titleEl.blur(); } };
 
-    note.querySelectorAll('[contenteditable]').forEach(el => {
-        const isTitle = el.classList.contains('note-title');
-        const defaultText = isTitle ? DEFAULT_TITLE : DEFAULT_BODY;
-        el.onfocus = () => handleAutoSelect(el, defaultText);
-        el.oninput = () => saveNotes(dateKey);
-        el.onblur = () => {
-            const t = titleEl.innerText.trim();
-            const b = bodyEl.innerText.trim();
-            if ((t === DEFAULT_TITLE || t === "") && (b === DEFAULT_BODY || b === "")) { note.remove(); }
-            updateCollapseState();
-            saveNotes(dateKey);
-        };
-    });
+    titleEl.onfocus = () => handleAutoSelect(titleEl, DEFAULT_TITLE);
+    titleEl.oninput = () => saveNotes(dateKey);
+    titleEl.onblur = () => {
+        const t = titleEl.innerText.trim();
+        if (t === DEFAULT_TITLE || t === "") { note.remove(); }
+        saveNotes(dateKey);
+    };
 
     note.ondragstart = (e) => {
         draggedElement = note;
-        note.classList.remove('collapsed');
         placeholder.style.height = `${note.offsetHeight}px`;
         note.dataset.sourceDate = dateKey;
         setTimeout(() => note.classList.add('dragging'), 0);
     };
     note.ondragend = () => {
         note.classList.remove('dragging');
-        updateCollapseState();
         if (placeholder.parentNode) placeholder.remove();
         draggedElement = null;
     };
@@ -311,9 +273,7 @@ function saveNotes(dateKey) {
     const notes = Array.from(container.querySelectorAll('.note')).map(n => ({
         id: n.dataset.id,
         title: n.querySelector('.note-title').innerText,
-        body: n.querySelector('.note-body').innerText,
-        seriesId: n.dataset.seriesId || null,
-        isDone: n.classList.contains('done')
+        seriesId: n.dataset.seriesId || null
     }));
     localStorage.setItem(`tweek-final-${DATA_VERSION}-${dateKey}`, JSON.stringify(notes));
 }
@@ -326,7 +286,6 @@ function loadNotes(dateKey) {
 
 const modalOverlay = document.getElementById('settingsModal');
 const dayToggles = document.querySelectorAll('.day-toggle');
-const repeatScopeSelect = document.getElementById('repeatScope');
 const stopRepeatBtn = document.getElementById('stopRepeatBtn');
 dayToggles.forEach(toggle => { toggle.onclick = () => { toggle.classList.toggle('selected'); }; });
 function openModal(noteEl, dateKey) {
@@ -347,7 +306,6 @@ function openModal(noteEl, dateKey) {
                     if(btn) btn.classList.add('selected');
                 });
             }
-            repeatScopeSelect.value = rule.scope;
             stopRepeatBtn.style.display = 'block';
             stopRepeatBtn.innerText = "Clear Series";
             stopRepeatBtn.onclick = () => clearSeries(seriesId);
@@ -356,7 +314,6 @@ function openModal(noteEl, dateKey) {
         const dayOfWeek = new Date(currentDateKey + 'T00:00:00').getDay();
         const currentDayBtn = document.querySelector(`.day-toggle[data-day="${dayOfWeek}"]`);
         if(currentDayBtn) currentDayBtn.classList.add('selected');
-        repeatScopeSelect.value = 'all';
         stopRepeatBtn.style.display = 'none';
     }
     modalOverlay.style.display = 'flex';
@@ -376,9 +333,7 @@ function moveNoteToDate() {
     const noteData = {
         id: currentNoteElement.dataset.id,
         title: currentNoteElement.querySelector('.note-title').innerText,
-        body: currentNoteElement.querySelector('.note-body').innerText,
-        seriesId: currentNoteElement.dataset.seriesId || null,
-        isDone: currentNoteElement.classList.contains('done')
+        seriesId: currentNoteElement.dataset.seriesId || null
     };
 
     const targetNotes = JSON.parse(localStorage.getItem(`tweek-final-${DATA_VERSION}-${targetDate}`) || "[]");
@@ -398,8 +353,6 @@ function moveNoteToDate() {
 
 function saveSettings() {
     const title = currentNoteElement.querySelector('.note-title').innerText;
-    const body = currentNoteElement.querySelector('.note-body').innerText;
-    const scope = repeatScopeSelect.value;
     const selectedDays = [];
     document.querySelectorAll('.day-toggle.selected').forEach(toggle => { selectedDays.push(parseInt(toggle.dataset.day)); });
     let rules = getRecurringRules();
@@ -408,12 +361,12 @@ function saveSettings() {
         if (selectedDays.length === 0) { clearSeries(currentSeriesId); return; }
         else {
             const rule = rules.find(r => r.id === currentSeriesId);
-            if(rule) { rule.days = selectedDays; rule.scope = scope; rule.title = title; rule.body = body; }
+            if(rule) { rule.days = selectedDays; rule.title = title; }
         }
     } else {
         if (selectedDays.length > 0) {
             const newSeriesId = Date.now().toString();
-            rules.push({ id: newSeriesId, title: title, body: body, scope: scope, days: selectedDays, startDate: currentDateKey });
+            rules.push({ id: newSeriesId, title: title, days: selectedDays, startDate: currentDateKey });
             currentNoteElement.dataset.seriesId = newSeriesId;
             currentNoteElement.classList.add('linked');
             addToHistory(`${newSeriesId}_${currentDateKey}`);
@@ -455,9 +408,7 @@ function handleDrop(e, targetContainer, targetDateKey) {
     const noteData = {
         id: draggedElement.dataset.id,
         title: draggedElement.querySelector('.note-title').innerText,
-        body: draggedElement.querySelector('.note-body').innerText,
-        seriesId: draggedElement.dataset.seriesId || null,
-        isDone: draggedElement.classList.contains('done')
+        seriesId: draggedElement.dataset.seriesId || null
     };
 
     // 2. Insert new note in the correct position (where the placeholder is)
