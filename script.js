@@ -300,19 +300,29 @@ let draggedCard = null;
 let cardPlaceholder = document.createElement('div');
 cardPlaceholder.className = 'card-placeholder';
 
-function createCard(container, dateKey, noteId, data = { title: DEFAULT_CARD_TITLE, id: Date.now().toString() }, insertBeforeEl = null, shouldFocus = true) {
+function createCard(container, dateKey, noteId, data = { title: DEFAULT_CARD_TITLE, id: Date.now().toString(), done: false }, insertBeforeEl = null, shouldFocus = true) {
     const card = document.createElement('div');
     card.className = 'card';
+    if (data.done) card.classList.add('done');
     card.draggable = true;
     card.dataset.id = data.id || Date.now().toString();
 
     card.innerHTML = `
+        <div class="card-checkbox" title="Mark complete"></div>
         <div class="card-title" contenteditable="true">${data.title}</div>
         <div class="card-delete icon icon-close" title="Delete"></div>
     `;
 
+    const checkboxEl = card.querySelector('.card-checkbox');
     const titleEl = card.querySelector('.card-title');
     const deleteBtn = card.querySelector('.card-delete');
+
+    // Checkbox toggle
+    checkboxEl.onclick = (e) => {
+        e.stopPropagation();
+        card.classList.toggle('done');
+        saveNotes(dateKey);
+    };
 
     deleteBtn.onclick = (e) => { 
         e.stopPropagation(); 
@@ -402,7 +412,8 @@ function handleCardDrop(e, targetContainer, targetDateKey, targetNoteId) {
 
     const cardData = {
         id: draggedCard.dataset.id,
-        title: draggedCard.querySelector('.card-title').innerText
+        title: draggedCard.querySelector('.card-title').innerText,
+        done: draggedCard.classList.contains('done')
     };
 
     if (cardPlaceholder.parentNode === targetContainer) {
@@ -430,7 +441,8 @@ function saveNotes(dateKey) {
     const notes = Array.from(container.querySelectorAll('.note')).map(n => {
         const cards = Array.from(n.querySelectorAll('.card')).map(c => ({
             id: c.dataset.id,
-            title: c.querySelector('.card-title').innerText
+            title: c.querySelector('.card-title').innerText,
+            done: c.classList.contains('done')
         }));
         return {
             id: n.dataset.id,
@@ -496,7 +508,8 @@ function moveNoteToDate() {
 
     const cards = Array.from(currentNoteElement.querySelectorAll('.card')).map(c => ({
         id: c.dataset.id,
-        title: c.querySelector('.card-title').innerText
+        title: c.querySelector('.card-title').innerText,
+        done: c.classList.contains('done')
     }));
 
     const noteData = {
@@ -598,7 +611,8 @@ function handleDrop(e, targetContainer, targetDateKey) {
     // 1. Extract data including cards
     const cards = Array.from(draggedElement.querySelectorAll('.card')).map(c => ({
         id: c.dataset.id,
-        title: c.querySelector('.card-title').innerText
+        title: c.querySelector('.card-title').innerText,
+        done: c.classList.contains('done')
     }));
 
     const noteData = {

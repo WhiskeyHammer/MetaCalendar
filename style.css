@@ -178,13 +178,40 @@ body {
     word-break: break-word;
     overflow-wrap: anywhere;
 }
-.card-delete {
+.card-delete, .card-checkbox {
     opacity: 0;
     transition: opacity 0.2s;
     flex-shrink: 0;
 }
-.card:hover .card-delete {
+.card:hover .card-delete, .card:hover .card-checkbox {
     opacity: 1;
+}
+
+/* Checkbox Styling */
+.card-checkbox {
+    width: 14px; height: 14px; border: 2px solid var(--border-color);
+    border-radius: 4px; margin-right: 8px; cursor: pointer;
+    position: relative; background: var(--note-bg);
+}
+.card-checkbox:hover { border-color: var(--text-muted); }
+
+/* Done State */
+.card.done .card-title { opacity: 0.4; }
+.card.done .card-checkbox { 
+    background: var(--note-bg); 
+    border-color: var(--text-main); 
+    opacity: 1 !important; 
+}
+.card.done .card-checkbox::after {
+    content: ''; position: absolute; left: 4px; top: 1px;
+    width: 3px; height: 7px; border: solid var(--text-main);
+    border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
+
+/* Dark Mode Done Cards */
+body.dark-mode .card.done {
+    background-color: #141414;
+    border-color: #222;
 }
 .card.dragging {
     opacity: 0.2;
