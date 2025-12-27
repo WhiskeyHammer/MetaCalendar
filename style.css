@@ -129,18 +129,6 @@ body {
     min-height: 40px;
     transition: background-color 0.2s;
 }
-.note::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 12px;
-    right: 12px;
-    height: 1px;
-    background-color: var(--border-color);
-}
-.note:last-child::after {
-    display: none;
-}
 .note:hover .note-title { color: var(--text-muted); }
 
 /* --- CARD CONTAINER --- */
@@ -151,6 +139,18 @@ body {
     padding: 0 12px 10px 12px;
     min-height: 20px;
     flex: 1;
+    position: relative;
+}
+
+/* Empty state message */
+.card-container:empty::after {
+    content: 'no tasks';
+    display: block;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    opacity: 0.5;
+    font-style: italic;
+    padding: 4px 0 4px 24px;
 }
 
 /* --- CARD --- */
@@ -265,15 +265,6 @@ body.dark-mode .icon-gear { border-color: var(--text-main); }
     flex: 0 0 auto;
     min-height: 40px;
     position: relative;
-}
-.placeholder::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 12px;
-    right: 12px;
-    height: 1px;
-    background-color: var(--border-color);
 }
 
 .modal-overlay {
