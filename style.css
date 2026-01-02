@@ -136,10 +136,16 @@ body {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    padding: 0 12px 10px 12px;
+    /* Default padding for empty/"filler" state */
+    padding: 0 12px 10px 12px; 
     min-height: 20px;
     flex: 1;
     position: relative;
+}
+
+/* Only add the extra 20px click area when actual tasks exist */
+.card-container:not(:empty) {
+    padding-bottom: 20px;
 }
 
 /* Empty state message */
@@ -226,7 +232,7 @@ body.dark-mode .card.done {
     display: flex; 
     justify-content: space-between; 
     align-items: flex-start;
-    padding: 10px 12px;
+    padding: 2px 12px 10px 12px;
     cursor: grab;
 }
 .note-title {
